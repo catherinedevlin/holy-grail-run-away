@@ -7,7 +7,7 @@ https://opengameart.org/content/blood-splats
 
 """
 
-import threading 
+import multiprocessing
 
 import arcade
 
@@ -25,6 +25,13 @@ def sign(val):
     except ZeroDivisionError:
         return 0
 
+def clap_listener(queue):
+    feed = sc.MicrophoneFeed()
+    detector = sc.AmplitudeDetector(feed, threshold=12000000)
+    for clap in detector:
+        print('clap!')
+        # self.claps = True
+
 class MyGame(arcade.Window):
     """ Main application class. """
 
@@ -34,9 +41,6 @@ class MyGame(arcade.Window):
         self.alive = True
         arcade.set_background_color(arcade.color.AMAZON)
 
-    def record_clap(self):
-        self.claps.append(True)
-        
     def setup(self):
         # Set up your game here
 
@@ -59,18 +63,10 @@ class MyGame(arcade.Window):
 
         self.physics_engine = arcade.PhysicsEngineSimple(self.player_sprite, arcade.SpriteList())
 
-        self.claps = False
-        def clap_listener():
-            print('listener begun')
-            feed = sc.MicrophoneFeed()
-            detector = sc.AmplitudeDetector(feed, threshold=12000000)
-            for clap in detector:
-                print('clap!')
-                # self.claps = True
-    
-        # self.clap_listener = threading.Thread(target=clap_listener)
-        # self.clap_listener.start()
-        
+        self.clap_queue = multiprocessing.Queue()
+        self.clap_listener = multiprocessing.Process(target=clap_listener, args=(self.clap_queue, ))
+        self.clap_listener.start()
+
 
     def on_draw(self):
         """ Render the screen. """
@@ -105,10 +101,10 @@ class MyGame(arcade.Window):
         if self.player_sprite.center_x > SCREEN_WIDTH:
             self.won = True
             self.score += 100
-        
-        if self.claps:
+
+        while not self.clap_queue.empty():
+            self.clap_queue.get()
             self.player_sprite.center_x += MOVEMENT_SPEED
-            self.claps = False
 
 
     MOVEMENT_SPEED = 2
