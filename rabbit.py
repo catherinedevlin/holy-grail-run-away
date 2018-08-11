@@ -2,6 +2,8 @@
 
 Sprite thanks:
 https://opengameart.org/content/knight-sprite
+https://opengameart.org/content/bunny-rabbit-lpc-style-for-pixelfarm
+https://opengameart.org/content/blood-splats
 
 """
 
@@ -29,6 +31,7 @@ class MyGame(arcade.Window):
     def __init__(self, width, height):
         super().__init__(width, height)
 
+        self.alive = True
         arcade.set_background_color(arcade.color.AMAZON)
 
     def record_clap(self):
@@ -42,13 +45,14 @@ class MyGame(arcade.Window):
 
         # Score
         self.score = 0
+        self.won = False
 
         self.player_sprite = arcade.Sprite("knight.png", SPRITE_SCALING_PLAYER)
         self.player_sprite.center_x = 400  # Starting position
         self.player_sprite.center_y = 400
         self.player_list.append(self.player_sprite)
 
-        self.rabbit_sprite = arcade.Sprite("knight.png", SPRITE_SCALING_PLAYER)
+        self.rabbit_sprite = arcade.Sprite("bunny.png", SPRITE_SCALING_PLAYER)
         self.rabbit_sprite.center_x = 50  # Starting position
         self.rabbit_sprite.center_y = 50
         self.monster_list.append(self.rabbit_sprite)
@@ -64,14 +68,21 @@ class MyGame(arcade.Window):
                 print('clap!')
                 # self.claps = True
     
-        self.clap_listener = threading.Thread(target=clap_listener)
-        self.clap_listener.start()
+        # self.clap_listener = threading.Thread(target=clap_listener)
+        # self.clap_listener.start()
         
 
     def on_draw(self):
         """ Render the screen. """
+        
+        if self.alive and not self.won:
+            self.draw_game()
+        else:
+            self.draw_game_over()
+        
+    def draw_game(self):
+
         arcade.start_render()
-        # Your drawing code goes here
         self.player_list.draw()
         self.monster_list.draw()
 
@@ -83,11 +94,17 @@ class MyGame(arcade.Window):
             monster.center_x += sign(self.player_sprite.center_x - monster.center_x)
             monster.center_y += sign(self.player_sprite.center_y - monster.center_y)
 
-        monsters_hit = arcade.check_for_collision_with_list(self.player_sprite, self.monster_list)
-        for monster in monsters_hit:
-            arcade.set_background_color(arcade.color.RED)
+        caught = arcade.check_for_collision(self.player_sprite, self.rabbit_sprite)
+        if caught:
+            self.alive = False
+            self.player_sprite.texture = arcade.load_texture('bloodsplats_0004.png')
+            self.player_list.draw()
+            self.monster_list.draw()
 
         self.physics_engine.update()
+        if self.player_sprite.center_x > SCREEN_WIDTH:
+            self.won = True
+            self.score += 100
         
         if self.claps:
             self.player_sprite.center_x += MOVEMENT_SPEED
@@ -98,7 +115,15 @@ class MyGame(arcade.Window):
 
     def on_key_press(self, key, modifiers):
         """Called whenever a key is pressed. """
+        
+        if (key == arcade.key.SPACE):
+            self.alive = True
+            self.won = False
+            self.setup()
 
+        if not self.alive:
+            return 
+            
         if key == arcade.key.UP:
             self.player_sprite.change_y = self.MOVEMENT_SPEED
         elif key == arcade.key.DOWN:
@@ -106,6 +131,7 @@ class MyGame(arcade.Window):
         elif key == arcade.key.LEFT:
             self.player_sprite.change_x = -self.MOVEMENT_SPEED
         elif key == arcade.key.RIGHT:
+            self.score += 1
             self.player_sprite.change_x = self.MOVEMENT_SPEED
 
     def on_key_release(self, key, modifiers):
@@ -116,7 +142,22 @@ class MyGame(arcade.Window):
         elif key == arcade.key.LEFT or key == arcade.key.RIGHT:
             self.player_sprite.change_x = 0
 
+    def draw_game_over(self):
+        """
+        Draw "Game over" across the screen.
+        """
 
+        output = "RUN AWAY!!!"
+        arcade.draw_text(output, 200, 500, arcade.color.WHITE, 54)
+
+        if self.won:
+            output = "You have escaped!"
+            arcade.draw_text(output, 80, 400, arcade.color.WHITE, 54)
+
+        output = "<space> to start"
+        arcade.draw_text(output, 250, 100, arcade.color.WHITE, 24)
+
+        arcade.draw_text(str(self.score), 700, 50, arcade.color.WHITE, 24)
 
 
 def main():
