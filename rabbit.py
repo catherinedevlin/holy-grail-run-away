@@ -10,13 +10,13 @@ https://opengameart.org/content/blood-splats
 import multiprocessing
 
 import arcade
-
 import slowclap as sc
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 
 SPRITE_SCALING_PLAYER = 1.0
+
 
 def sign(val):
 
@@ -25,12 +25,13 @@ def sign(val):
     except ZeroDivisionError:
         return 0
 
+
 def clap_listener(queue):
     feed = sc.MicrophoneFeed()
     detector = sc.AmplitudeDetector(feed, threshold=12000000)
     for clap in detector:
         print('clap!')
-        # self.claps = True
+
 
 class MyGame(arcade.Window):
     """ Main application class. """
@@ -61,21 +62,22 @@ class MyGame(arcade.Window):
         self.rabbit_sprite.center_y = 50
         self.monster_list.append(self.rabbit_sprite)
 
-        self.physics_engine = arcade.PhysicsEngineSimple(self.player_sprite, arcade.SpriteList())
+        self.physics_engine = arcade.PhysicsEngineSimple(
+            self.player_sprite, arcade.SpriteList())
 
         self.clap_queue = multiprocessing.Queue()
-        self.clap_listener = multiprocessing.Process(target=clap_listener, args=(self.clap_queue, ))
+        self.clap_listener = multiprocessing.Process(
+            target=clap_listener, args=(self.clap_queue, ))
         self.clap_listener.start()
-
 
     def on_draw(self):
         """ Render the screen. """
-        
+
         if self.alive and not self.won:
             self.draw_game()
         else:
             self.draw_game_over()
-        
+
     def draw_game(self):
 
         arcade.start_render()
@@ -87,13 +89,17 @@ class MyGame(arcade.Window):
 
         for monster in self.monster_list:
 
-            monster.center_x += sign(self.player_sprite.center_x - monster.center_x)
-            monster.center_y += sign(self.player_sprite.center_y - monster.center_y)
+            monster.center_x += sign(self.player_sprite.center_x -
+                                     monster.center_x)
+            monster.center_y += sign(self.player_sprite.center_y -
+                                     monster.center_y)
 
-        caught = arcade.check_for_collision(self.player_sprite, self.rabbit_sprite)
+        caught = arcade.check_for_collision(self.player_sprite,
+                                            self.rabbit_sprite)
         if caught:
             self.alive = False
-            self.player_sprite.texture = arcade.load_texture('bloodsplats_0004.png')
+            self.player_sprite.texture = arcade.load_texture(
+                'bloodsplats_0004.png')
             self.player_list.draw()
             self.monster_list.draw()
 
@@ -106,20 +112,19 @@ class MyGame(arcade.Window):
             self.clap_queue.get()
             self.player_sprite.center_x += MOVEMENT_SPEED
 
-
     MOVEMENT_SPEED = 2
 
     def on_key_press(self, key, modifiers):
         """Called whenever a key is pressed. """
-        
+
         if (key == arcade.key.SPACE):
             self.alive = True
             self.won = False
             self.setup()
 
         if not self.alive:
-            return 
-            
+            return
+
         if key == arcade.key.UP:
             self.player_sprite.change_y = self.MOVEMENT_SPEED
         elif key == arcade.key.DOWN:

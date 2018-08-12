@@ -1,37 +1,70 @@
-import arcade
-from background import draw_background
+import random
+import re
+import subprocess
 
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
+import enquiries
 
+blankline = re.compile(r'\n\s*\n', re.DOTALL)
 
-class MyGame(arcade.Window):
-    """ Main application class. """
+SOURCE = 'trivia.txt'
 
-    def __init__(self, width, height):
-        super().__init__(width, height)
-
-    def setup(self):
-        # Set up your game here
-        pass
-
-    def on_draw(self):
-        """ Render the screen. """
-
-        arcade.set_background_color(arcade.color.LIGHT_GRAY)
-        arcade.start_render()
-        draw_background()
-
-    def update(self, delta_time):
-        """ All the logic to move, and the game logic goes here. """
-        pass
+with open(SOURCE) as infile:
+    content = infile.read()
 
 
-def main():
-    game = MyGame(SCREEN_WIDTH, SCREEN_HEIGHT)
-    game.setup()
-    arcade.run()
+class Question:
+    def __init__(self, raw):
+        self.raw = raw
+        lines = self.raw.splitlines()
+        self.question = lines.pop(0)
+        self.lines = lines
+        self.correct = lines[0]
+
+    def dict(self):
+        options = self.lines.copy()
+        random.shuffle(options)
+        return {
+            'question': self.question,
+            'choices': options,
+            'answer': self.answer
+        }
+
+    def ask(self):
+        options = self.lines.copy()
+        random.shuffle(options)
+        answer = enquiries.choose(self.question, options)
+        result = answer == self.correct
+        try:
+            if result:
+                subprocess.run(('xplayer', 'video/correct.mp4'), timeout=6)
+            else:
+                subprocess.run(('xplayer', 'video/wrong.mp4'), timeout=6)
+        except subprocess.TimeoutExpired:
+            pass
+        return result
 
 
-if __name__ == "__main__":
-    main()
+def load():
+    raw_questions = blankline.split(content)
+    return [Question(r) for r in raw_questions]
+
+
+if __name__ == '__main__':
+    questions = load()
+    question_deck = questions.copy()
+    random.shuffle(question_deck)
+    streak = 0
+    while True:
+        subprocess.run('clear')
+        print(
+            '\n\nYour winning streak is {} questions long.\n\n'.format(streak))
+
+        if not question_deck:
+            question_deck = questions.copy()
+            random.shuffle(question_deck)
+        question = question_deck.pop()
+        result = question.ask()
+        if result:
+            streak += 1
+        else:
+            streak = 0
